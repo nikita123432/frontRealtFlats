@@ -1,43 +1,107 @@
-import { Card, Select, Input, Button, Form } from 'antd';
+// eslint-disable-next-line no-unused-vars
+import React, { useState, useEffect } from 'react';
+import { Card, Select, Input, Button, Form, message } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+
+// Функция для получения URL фотографии, используя только homeId
 
 const PropertyFilter = () => {
     const [estate, setEstate] = useState([]);
     const [transactionType, setTransactionType] = useState('');
     const [housingType, setHousingType] = useState('');
     const [numberOfRooms, setNumberOfRooms] = useState('');
+    const [photos, setPhotos] = useState({}); // Храним фотографии для каждой недвижимости
 
+    // Функция для получения недвижимости
     const fetchRealEstate = () => {
-        axios.get('http://127.0.0.1:8000/operations/items')
-            .then(response => {
+        axios
+            .get('http://127.0.0.1:8000/operations/items')
+            .then((response) => {
                 const realEstate = response.data;
+
+                // Преобразуем данные для отображения
                 const menuItems = realEstate.map((c, index) => ({
                     key: index,
-                    id: c.Home.id, // Используем уникальный ID
-                    name: c.Home.name,
-                    price: c.Home.price,
-                    description: c.Home.description,
-                    options: c.Home.options,
-                    address: c.Home.address,
-                    photo: `http://127.0.0.1:8000/${c.Home.photo}`,
-                    type: c.Home.type_of_transaction,
-                    housing: c.Home.type_of_housing,
-                    rooms: c.Home.number_of_rooms
+                    id: c.id,
+                    homeId: c.home_id,  // Сохраняем home_id для связки с фотографиями
+                    name: c.name,
+                    price: c.price,
+                    description: c.description,
+                    options: c.options,
+                    address: c.address,
+                    type: c.type_of_transaction,
+                    housing: c.type_of_housing,
+                    rooms: c.number_of_rooms,
                 }));
+
                 setEstate(menuItems);
+                menuItems.forEach(item => {
+                    // Для каждого элемента недвижимости получаем фотографии
+                    getPhotos(item.id);
+                });
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Ошибка при получении данных:', error);
             });
+    };
+
+    // Функция для получения фотографий по homeId
+
+        const getPhotos = async (homeId) => {
+
+            console.log(homeId); // Логируем homeId
+            try {
+                const response = await axios.get(`http://127.0.0.1:8000/operations/get-photo/${homeId}`);
+                console.log('Полученные фотографии:', response.data);  // Логируем полученные данные
+                const updatedPhotos = response.data.map((photo) => {
+                    return {
+                        photo: photo.photo,
+                        path: `http://127.0.0.1:8000/operations/get-photo/${homeId}/${photo.photo}`
+
+                    };
+
+                });
+                console.log('Обновленные фотографии:', updatedPhotos);  // Логируем итоговые данные
+                setPhotos((prevState) => ({
+                    ...prevState,
+                    [homeId]: updatedPhotos, // Сохраняем фотографии для конкретного homeId
+
+                }));
+                console.log(updatedPhotos)
+            } catch (err) {
+                console.error('Ошибка при получении фотографий', err);
+            }
+        };
+
+    // Функция для добавления в избранное
+    const addToFavorites = async (homeId) => {
+        try {
+            const response = await axios.post('http://127.0.0.1:8000/operations/favorites/', {
+                home_id: homeId,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`, // Используйте токен из хранилища
+                }
+            });
+
+            if (response.status === 200) {
+                message.success('Недвижимость добавлена в избранное');
+            }
+        } catch (error) {
+            if (error.response && error.response.status === 400) {
+                message.error('Эта недвижимость уже в избранном');
+            } else {
+                message.error('Ошибка при добавлении в избранное');
+            }
+        }
     };
 
     useEffect(() => {
         fetchRealEstate();
     }, []);
 
-    const filteredProperties = estate.filter(property => {
+    const filteredProperties = estate.filter((property) => {
         return (
             (transactionType ? property.type === transactionType : true) &&
             (housingType ? property.housing === housingType : true) &&
@@ -48,12 +112,14 @@ const PropertyFilter = () => {
     return (
         <div className="p-6 flex flex-col items-center justify-center min-h-screen">
             <Form layout="inline" className="mb-6 flex flex-wrap justify-center space-x-29">
-                <Form.Item label="Type of Transaction">
+                <Form.Item label="Тип сделки ">
+
                     <Select
                         onChange={(value) => setTransactionType(value)}
                         value={transactionType}
                         allowClear
-                        className="w-48"
+                        style={{ width: 'auto' }}
+                        className="max-w-full"
                     >
                         <Select.Option value="sale">Продать</Select.Option>
                         <Select.Option value="rent">Сдать в аренду</Select.Option>
@@ -61,12 +127,12 @@ const PropertyFilter = () => {
                     </Select>
                 </Form.Item>
 
-                <Form.Item label="Type of Housing">
+                <Form.Item label="Тип недвижимости">
                     <Select
                         onChange={(value) => setHousingType(value)}
                         value={housingType}
                         allowClear
-                        className="w-48"
+                        className="w-64"
                     >
                         <Select.Option value="apartment">Квартира</Select.Option>
                         <Select.Option value="room">Комната</Select.Option>
@@ -78,7 +144,7 @@ const PropertyFilter = () => {
                     </Select>
                 </Form.Item>
 
-                <Form.Item label="Number of Rooms">
+                <Form.Item label="Количество комнат">
                     <Input
                         onChange={(e) => setNumberOfRooms(e.target.value)}
                         value={numberOfRooms}
@@ -88,13 +154,13 @@ const PropertyFilter = () => {
 
                 <Form.Item>
                     <Button type="primary" onClick={() => fetchRealEstate()}>
-                        Apply Filters
+                        Применить фильтр
                     </Button>
                 </Form.Item>
             </Form>
 
             <div className="flex flex-col items-center w-full space-y-6">
-                {filteredProperties.map(item => (
+                {filteredProperties.map((item) => (
                     <Link to={`/property/${item.id}`} key={item.key} className="w-full max-w-2xl">
                         <Card
                             className="p-4 shadow-md border border-gray-300 rounded-lg bg-white"
@@ -102,32 +168,46 @@ const PropertyFilter = () => {
                         >
                             <div className="flex flex-col items-start">
                                 <div className="w-full flex justify-between mb-4">
-                                    <span className="text-yellow-500 font-bold text-lg">{item.price} р./мес.</span>
-                                    <span className="text-gray-500 text-sm">🔥</span>
+                                    <span className="text-yellow-500 font-bold text-lg">{item.price} р.</span>
                                 </div>
                                 <div className="w-full mb-4">
-                                    {item.photo ? (
-                                        <img
-                                            alt={item.name}
-                                            src={item.photo}
-                                            className="object-cover w-full h-48 rounded-md"
-                                        />
+                                    {photos[item.homeId] && photos[item.homeId].length > 0 ? (
+                                        <div className="photos">
+                                            {photos[item.homeId].map((photo, idx) => {
+                                                console.log(photo);  // Логируем каждое фото
+                                                return (
+                                                    <div key={idx} className="photo-container">
+                                                        <img
+                                                            src={photo.path}  // Используем сформированный путь
+                                                            alt={photo.photo}
+                                                            className="photo"
+                                                        />
+                                                        {photo.photo && <p>{photo.photo}</p>}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     ) : (
-                                        <div className="bg-gray-200 w-full h-48 rounded-md"/>
+                                        <div className="bg-gray-200 w-full h-48 rounded-md">
+                                            <p>Нет фотографий</p>
+                                        </div>
                                     )}
                                 </div>
+
+
                                 <h3 className="font-bold text-xl text-gray-800 mb-2">{item.name}</h3>
                                 <div className="text-gray-600 text-sm space-y-2">
-                                    <p>{item.description}</p>
-                                    <p>Опции: {item.options}</p>
+                                    <p className="line-clamp-2">{item.description}</p>
                                     <p>Адрес: {item.address}</p>
                                 </div>
                                 <div className="flex justify-between mt-4 w-full">
-                                    <Button type="primary" className="mr-2 w-full">
-                                        Контакты
-                                    </Button>
-                                    <Button className="w-full" ghost>
-                                        Написать
+
+                                    <Button
+                                        type="primary"
+                                        onClick={() => addToFavorites(item.id)} // Передаем ID объекта
+                                        style={{marginTop: '10px'}}
+                                    >
+                                        Добавить в избранное
                                     </Button>
                                 </div>
                             </div>

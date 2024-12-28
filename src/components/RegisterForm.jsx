@@ -14,6 +14,7 @@ const App = () => {
             const response = await axios.post('http://127.0.0.1:8000/register', {
                 username: values.username,
                 email: values.email,
+                phone_number: values.phone_number,
                 password: values.password,
                 role_id: values.role_id || 0, // передаем роль (по умолчанию 0)
                 is_active: values.is_active !== undefined ? values.is_active : true, // по умолчанию true

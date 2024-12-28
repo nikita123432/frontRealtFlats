@@ -1,9 +1,8 @@
 // eslint-disable-next-line no-unused-vars
 import React, { useState, useEffect } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Select, Upload, message } from 'antd';
+import { Button, Form, Input, Select, Upload, message, Space } from 'antd';
 import axios from 'axios';
-;
 
 const { TextArea } = Input;
 const normFile = (e) => {
@@ -16,7 +15,6 @@ const normFile = (e) => {
 const HomeForm = () => {
     const [componentDisabled] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);  // Состояние для авторизации
-
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -35,12 +33,25 @@ const HomeForm = () => {
         payload.append('name', values.name);
         payload.append('price', values.price);
         payload.append('description', values.description);
-        payload.append('options', values.options || '');
         payload.append('address', values.address);
         payload.append('type_of_transaction', values.type_of_transaction);
         payload.append('type_of_housing', values.type_of_housing);
+
+        // Добавление отдельных опций
+        payload.append('home_id', values.homeId);
         payload.append('number_of_rooms', values.number_of_rooms);
-        payload.append('photo', values.photo?.[0]?.originFileObj || null); // Отправляем сам файл
+        payload.append('square', values.square);
+        payload.append('year_of_construction', values.year_of_construction);
+        payload.append('floor', values.floor);
+        payload.append('ceiling_height', values.ceiling_height);
+        payload.append('balcony', values.balcony);
+        payload.append('internet', values.internet);
+        payload.append('elevator', values.elevator);
+
+        // Добавление всех фотографий
+        values.photo?.forEach(file => {
+            payload.append('photos', file.originFileObj); // Отправляем каждую фотографию
+        });
 
         const token = localStorage.getItem("token"); // Получение токена
 
@@ -53,7 +64,6 @@ const HomeForm = () => {
             headers: {
                 Authorization: `Bearer ${token}`, // Добавляем токен в заголовок
                 'Content-Type': 'multipart/form-data',
-
             },
         })
             .then(response => {
@@ -66,115 +76,174 @@ const HomeForm = () => {
             });
     };
 
-
     return (
         <>
             {isAuthenticated ? (
                 <Form
-                    labelCol={{ span: 4 }}
-                    wrapperCol={{ span: 14 }}
-                    layout="horizontal"
+                    labelCol={{ span: 6 }}
+                    wrapperCol={{ span: 18 }}
+                    layout="vertical"
                     disabled={componentDisabled}
-                    style={{ maxWidth: 600 }}
+                    style={{
+                        maxWidth: 700,
+                        margin: '0 auto',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                        backgroundColor: 'rgba(143,140,140,0.44)',
+                        fontWeight: "bold"
+                    }}
                     onFinish={onFinish}
                 >
+                    <h2 style={{ textAlign: 'center', marginBottom: '30px' }}>Добавить Недвижимость</h2>
+
                     <Form.Item
-                        label="Name"
+                        label="Название"
                         name="name"
-                        rules={[{ required: true, message: 'Please input the name!' }]}
-                    >
-                        <Input />
+                        rules={[{ required: true, message: 'Пожалуйста, введите название!' }]}>
+                        <Input placeholder="Введите название недвижимости" />
                     </Form.Item>
 
                     <Form.Item
-                        label="Price"
+                        label="Цена"
                         name="price"
-                        rules={[{ required: true, message: 'Please input the price!' }]}
-                    >
-                        <Input />
+                        rules={[{ required: true, message: 'Пожалуйста, введите цену!' }]}>
+                        <Input placeholder="Введите цену" type="number" />
                     </Form.Item>
 
                     <Form.Item
-                        label="Description"
+                        label="Описание"
                         name="description"
-                        rules={[{ required: true, message: 'Please input the description!' }]}
-                    >
-                        <TextArea rows={4} />
+                        rules={[{ required: true, message: 'Пожалуйста, введите описание!' }]}>
+                        <TextArea placeholder="Введите описание недвижимости" rows={4} />
                     </Form.Item>
 
                     <Form.Item
-                        label="Options"
-                        name="options"
-                    >
-                        <Input />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Address"
+                        label="Адрес"
                         name="address"
-                        rules={[{ required: true, message: 'Please input the address!' }]}
-                    >
-                        <Input />
+                        rules={[{ required: true, message: 'Пожалуйста, введите адрес!' }]}>
+                        <Input placeholder="Введите адрес" />
                     </Form.Item>
 
                     <Form.Item
-                        label="Type of Transaction"
+                        label="Тип сделки"
                         name="type_of_transaction"
-                        rules={[{ required: true, message: 'Please select the transaction type!' }]}
-                    >
-                        <Select>
-                            <Select.Option value="sale">Продать</Select.Option>
-                            <Select.Option value="rent">Сдать в аренду</Select.Option>
-                            <Select.Option value="daily">Сдать посуточно</Select.Option>
+                        rules={[{ required: true, message: 'Пожалуйста, выберите тип сделки!' }]}>
+                        <Select placeholder="Выберите тип сделки">
+                            <Select.Option value="sale">Продажа</Select.Option>
+                            <Select.Option value="rent">Аренда</Select.Option>
+                            <Select.Option value="daily">Посуточная аренда</Select.Option>
                         </Select>
                     </Form.Item>
 
                     <Form.Item
-                        label="Type of Housing"
+                        label="Тип недвижимости"
                         name="type_of_housing"
-                        rules={[{ required: true, message: 'Please select the housing type!' }]}
-                    >
-                        <Select>
+                        rules={[{ required: true, message: 'Пожалуйста, выберите тип недвижимости!' }]}>
+                        <Select placeholder="Выберите тип недвижимости">
                             <Select.Option value="apartment">Квартира</Select.Option>
                             <Select.Option value="room">Комната</Select.Option>
                             <Select.Option value="plot">Земельный участок</Select.Option>
                             <Select.Option value="office">Офис</Select.Option>
-                            <Select.Option value="commercial">Торговоее помещение</Select.Option>
+                            <Select.Option value="commercial">Торговое помещение</Select.Option>
                             <Select.Option value="warehouse">Склад</Select.Option>
                             <Select.Option value="house">Дом</Select.Option>
                         </Select>
                     </Form.Item>
 
                     <Form.Item
-                        label="Number of Rooms"
+                        label="Количество комнат"
                         name="number_of_rooms"
-                        rules={[{ required: true, message: 'Please input the number of rooms!' }]}
-                    >
-                        <Input />
+                        rules={[{ required: true, message: 'Пожалуйста, введите количество комнат!' }]}>
+                        <Input placeholder="Введите количество комнат" type="number" />
                     </Form.Item>
 
                     <Form.Item
-                        label="Photo"
+                        label="Площадь"
+                        name="square"
+                        rules={[{ required: true, message: 'Пожалуйста, введите площадь!' }]}>
+                        <Input placeholder="Введите площадь" type="number" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Год постройки"
+                        name="year_of_construction"
+                        rules={[{ required: true, message: 'Пожалуйста, введите год постройки!' }]}>
+                        <Input placeholder="Введите год постройки" type="number" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Этаж"
+                        name="floor"
+                        rules={[{ required: true, message: 'Пожалуйста, введите этаж!' }]}>
+                        <Input placeholder="Введите этаж" type="number" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Высота потолков"
+                        name="ceiling_height"
+                        rules={[{ required: true, message: 'Пожалуйста, введите высоту потолков!' }]}>
+                        <Input placeholder="Введите высоту потолков" type="number" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Балкон"
+                        name="balcony"
+                        rules={[{ required: true, message: 'Пожалуйста, укажите наличие балкона!' }]}>
+                        <Select placeholder="Выберите наличие балкона">
+                            <Select.Option value="yes">Есть</Select.Option>
+                            <Select.Option value="no">Нет</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Интернет"
+                        name="internet"
+                        rules={[{ required: true, message: 'Пожалуйста, укажите наличие интернета!' }]}>
+                        <Select placeholder="Выберите наличие интернета">
+                            <Select.Option value="yes">Есть</Select.Option>
+                            <Select.Option value="no">Нет</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Лифт"
+                        name="elevator"
+                        rules={[{ required: true, message: 'Пожалуйста, укажите наличие лифта!' }]}>
+                        <Select placeholder="Выберите наличие лифта">
+                            <Select.Option value="yes">Есть</Select.Option>
+                            <Select.Option value="no">Нет</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Фото"
                         name="photo"
                         valuePropName="fileList"
-                        getValueFromEvent={normFile}
-                    >
-                        <Upload action="http://127.0.0.1:8000/operations/add-real-estate/" listType="picture-card" method="POST">
+                        getValueFromEvent={normFile}>
+                        <Upload
+                            action="http://127.0.0.1:8000/operations/add-real-estate/"
+                            listType="picture-card"
+                            method="POST">
                             <div>
                                 <PlusOutlined />
-                                <div style={{ marginTop: 8 }}>Upload</div>
+                                <div style={{ marginTop: 8 }}>Загрузить</div>
                             </div>
                         </Upload>
                     </Form.Item>
 
-                    <Form.Item>
-                        <Button type="primary" htmlType="submit">
-                            Submit
-                        </Button>
+                    <Form.Item style={{ textAlign: 'center' }}>
+                        <Space>
+                            <Button type="primary" htmlType="submit" style={{ width: '200px' }}>
+                                Добавить
+                            </Button>
+                        </Space>
                     </Form.Item>
                 </Form>
             ) : (
-                <p>You must be logged in to add a product. Please register or log in.</p>
+                <div style={{ textAlign: 'center' }}>
+                    <p>Вы должны быть авторизованы, чтобы добавить недвижимость. Пожалуйста, войдите в систему.</p>
+                </div>
             )}
         </>
     );

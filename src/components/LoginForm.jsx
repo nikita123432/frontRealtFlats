@@ -2,10 +2,20 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';  // Подключаем axios
 
 const LoginForm = () => {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Функция для отслеживания визита
+    const trackVisit = async (userId) => {
+        try {
+            await axios.post('http://localhost:8000/track-visit', { user_id: userId });
+        } catch (error) {
+            console.error('Ошибка отслеживания визита:', error);
+        }
+    };
 
     const handleLogin = (values) => {
         setLoading(true);
@@ -14,7 +24,6 @@ const LoginForm = () => {
         formData.append('grant_type', 'password');
         formData.append('username', values.email);
         formData.append('password', values.password);
-
 
         fetch('http://127.0.0.1:8000/jwt/login', {
             method: 'POST',
@@ -34,6 +43,11 @@ const LoginForm = () => {
                 message.success('Успешный вход!');
                 localStorage.setItem('token', data.access_token); // Замените ключ, если нужен другой
                 console.log('Received token:', data.access_token);
+
+                // Вызов функции отслеживания визита
+                const userId = data.user_id; // Предполагается, что user_id возвращается в ответе
+                trackVisit(userId);
+
                 window.dispatchEvent(new Event("authChange"));
                 navigate('/');
             })
@@ -65,7 +79,7 @@ const LoginForm = () => {
                     <Form.Item
                         label="Пароль"
                         name="password"
-                        rules={[{ required: true, message: 'Введите ваш пароль' }]}
+                        rules={[ { required: true, message: 'Введите ваш пароль' } ]}
                     >
                         <Input.Password placeholder="Ваш пароль" />
                     </Form.Item>
